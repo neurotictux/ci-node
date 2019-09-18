@@ -7,8 +7,16 @@ function App() {
   const [projects, setProjects] = useState([])
   const [project, setProject] = useState()
   const [branches, setBranches] = useState({})
+  const [log, setLog] = useState('')
 
-  useEffect(() => refresh(), [])
+  useEffect(() => {
+    refresh()
+    setInterval(() => {
+      axios.get('publish')
+        .then(res => setLog(res.data.log))
+        .catch(err => console.log(err))
+    }, 2000)
+  }, [])
 
   function refresh() {
     axios.get('projects').then(res => {
@@ -50,8 +58,9 @@ function App() {
 
   function publish(name) {
     axios.post('publish', { project: name, branch: branches[name] })
-      .then(res => refresh())
+      .then(res => console.log(res))
       .catch(err => console.log(err))
+      setLog('')
   }
 
   function cancel() {
@@ -106,6 +115,8 @@ function App() {
           <button className="btn" onClick={() => cancel()}>Cancelar</button>
           <button className="btn" onClick={() => save()}>Salvar</button>
         </div>
+        <textarea hidden={!log} value={log} className="text-log" disabled={true}>
+        </textarea>
       </header>
     </div>
   );

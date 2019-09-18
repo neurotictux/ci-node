@@ -1,18 +1,30 @@
-const { unlinkSync, readFileSync, writeFileSync } = require('fs')
+const { unlinkSync, readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs')
 const { join } = require('path')
-const { execSync } = require('child_process')
-
+const { execSync, exec } = require('child_process')
 const pathFile = join(__dirname, '..', 'projects.json')
+const pathLogs = join(__dirname, '..', 'logs')
+const publishPath = join(__dirname, '..', 'publish')
 const isLinux = process.platform === 'linux'
+
+let currentProcess = null
+
+if (!existsSync(pathFile))
+    writeFileSync(pathFile, JSON.stringify([]), 'utf-8')
+
+if (!existsSync(pathLogs))
+    mkdirSync(pathLogs)
+
+if (!existsSync(publishPath))
+    mkdirSync(publishPath)
 
 let runnerPublish = null
 let runnerLoadBranches = null
 
 if (isLinux) {
-    runnerPublish = `sh ${join(__dirname, 'scripts', 'main.sh')}`
+    runnerPublish = `sh ${join(__dirname, 'scripts', 'publish.sh')}`
     runnerLoadBranches = `sh ${join(__dirname, 'scripts', 'load-branches.sh')}`
 } else {
-    runnerPublish = `powershell ${join(__dirname, 'scripts', 'main.ps1')}`
+    runnerPublish = `powershell ${join(__dirname, 'scripts', 'publish.ps1')}`
     runnerLoadBranches = `powershell ${join(__dirname, 'scripts', 'load-branches.ps1')}`
 }
 const resolveString = str => (str || '').replace(/[ ]/g, '')
@@ -44,13 +56,31 @@ const updateBranches = name => {
     writeFileSync(pathFile, JSON.stringify(projects), 'utf-8')
 }
 
-const publish = (project, branch) => {
-    execSync(`${runnerPublish} ${resolveString(project)} ${resolveString(branch)}`)
+const publish = (name, branch) => {
+    if (currentProcess && currentProcess.publishing)
+        throw 'Há um projeto sendo publicado'
+    name = resolveString(name)
+    branch = resolveString(branch)
+    const proj = loadAll().find(p => p.name === name)
+    const logFile = join(pathLogs, `${name}.log`)
+    const publishFolder = join(publishPath, name)
+    const command = `${runnerPublish} ${proj.path} ${branch} ${publishFolder} ${logFile}`
+    currentProcess = { logFile, name, branch }
+    exec(command, () => currentProcess.publishing = false)
+}
+
+const currentPublish = () => {
+    const result = Object.assign({}, currentProcess)
+    if (result && result.logFile)
+        result.log = readFileSync(result.logFile, 'utf-8')
+    return Object.assign({}, result)
 }
 
 module.exports = {
     loadAll,
     save,
     updateBranches,
-    remove
+    remove,
+    publish,
+    currentPublish
 }

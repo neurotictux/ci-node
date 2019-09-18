@@ -12,9 +12,11 @@ app.get('/projects', (req, res) => res.json(projectService.loadAll()))
 
 app.post('/publish', (req, res) => {
     const { project, branch } = req.body || {}
-    console.log({ project, branch })
-    res.end('Publicando...')
+    projectService.publish(project, branch)
+    res.json(projectService.currentPublish())
 })
+
+app.get('/publish', (req, res) => res.json(projectService.currentPublish()))
 
 app.post('/project', (req, res) => {
     const { name, path } = req.body || {}
