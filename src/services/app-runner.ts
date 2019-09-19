@@ -20,7 +20,9 @@ export class AppRunner {
 
     run(name: string): void {
         const proj = this.projectService.get(name)
-        const child = spawn(Config.shell, [Config.runnerApp, join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll')])
+        const child = spawn(Config.runnerApp,
+            [join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll')],
+            { shell: true })
         onLog(name, LogType.AppStart)
         child.stdout.on('data', data => onLog(name, LogType.AppData, data.toString()))
         child.stdout.on('close', () => {

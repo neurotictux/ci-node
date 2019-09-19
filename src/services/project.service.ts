@@ -1,5 +1,5 @@
-import { execSync, spawn } from 'child_process'
-import { readFileSync, unlinkSync, writeFileSync } from 'fs'
+import { spawn } from 'child_process'
+import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 import { Config } from '../config'
@@ -11,6 +11,17 @@ interface ICurrentProcess {
     name: string
     branch: string
     publishing: boolean
+}
+
+const resolveBranchNames = (str: string): string[] => {
+    const result: string[] = []
+    const branches = str.split(' ').map(p => (p || '').replace(/(\n)|(\t)/, ' '))
+    branches.forEach(p => {
+        p.split(' ').filter(x => x.includes('ref'))
+            .forEach(x => result.push(x.trim()))
+    })
+    return result.map(p => p.replace(/(refs[/](heads|(remotes[/]origin))[/])/g, ''))
+        .filter((v, i, arr) => v && v !== 'HEAD' && arr.indexOf(v) === i)
 }
 
 export class ProjectService {
@@ -43,18 +54,15 @@ export class ProjectService {
 
             const projects = this.getAll()
             const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
-            const child = spawn(Config.shell, [Config.runnerLoadBranches, proj.path])
+            const child = spawn(Config.runnerLoadBranches, [proj.path], { shell: true })
             let branches = ''
             child.stdout.on('data', data => {
                 const str = data.toString()
                 if (str.includes('refs'))
                     branches += str
             })
-
             child.stdout.on('close', () => {
-                branches = branches.replace(/(refs[/](heads|(remotes[/]origin))[/])|(\n)/g, '')
-                proj.branches = branches.split(' ').map(p => p.trim())
-                proj.branches = proj.branches.filter((v, i, arr) => v && v !== 'HEAD' && arr.indexOf(v) === i)
+                proj.branches = resolveBranchNames(branches)
                 if (proj.selectedBranch && proj.branches.includes(proj.selectedBranch))
                     proj.selectedBranch = proj.selectedBranch
                 else
@@ -74,7 +82,7 @@ export class ProjectService {
         const proj = this.getAll().find(p => p.name === name)
         const logFile = join(Config.logsPath, `${name}.log`)
         const publishFolder = join(Config.publishPath, name)
-        const child = spawn(Config.shell, [Config.runnerPublish, proj.path, branch, publishFolder])
+        const child = spawn(Config.runnerPublish, [proj.path, branch, publishFolder], { shell: true })
         onLog(name, LogType.PublishStart)
         proj.logPublish = ''
         child.stdout.on('data', data => {

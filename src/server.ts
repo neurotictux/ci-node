@@ -1,14 +1,17 @@
-import { existsSync, writeFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { createServer } from 'http'
 
 import * as bodyParser from 'body-parser'
 import * as express from 'express'
 import * as socketio from 'socket.io'
-import { Client } from 'socket.io'
 
 import { Project } from './models'
 import { AppRunner } from './services/app-runner'
 import { ProjectService } from './services/project.service'
+
+interface IClientSocket {
+    emit(type: string, data: { name: string, log: string }): void
+}
 
 const projectService = new ProjectService()
 const appRunner = new AppRunner()
@@ -24,6 +27,8 @@ app.get('/projects', (req, res) => {
 
 app.post('/publish', (req, res) => {
     const { project, branch } = req.body || {}
+    if (appRunner.isRunning(project))
+        appRunner.stop(project)
     projectService.publish(project, branch)
     res.end()
 })
@@ -60,7 +65,6 @@ app.post('/project', (req, res) => {
 
 app.post('/branches/:name', (req, res) => {
     const { name } = req.params || {}
-    console.log(name)
     projectService.updateBranches(name).then(() => res.end())
 })
 
@@ -72,8 +76,8 @@ app.delete('/project/:name', (req, res) => {
 
 const server = createServer(app)
 const io = socketio(server)
-const clients: Client[] = []
-io.on('connection', (client: Client) => clients.push(client))
+const clients: IClientSocket[] = []
+io.on('connection', (client: IClientSocket) => clients.push(client))
 
 server.listen(8000)
 
@@ -87,5 +91,5 @@ export enum LogType {
 }
 
 export const onLog = (name: string, type: LogType, log: string = '') => {
-    clients.forEach(p => (<any>p).emit(type.toString(), { name, log }))
+    clients.forEach(p => p.emit(type.toString(), { name, log }))
 }
