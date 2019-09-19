@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'
+import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css';
 
 function App() {
 
   const [projects, setProjects] = useState([])
-  const [project, setProject] = useState()
+  const [projectName, setProjectName] = useState('')
+  const [projectPath, setProjectPath] = useState('')
+  const [edition, setEdition] = useState(false)
   const [branches, setBranches] = useState({})
   const [log, setLog] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     refresh()
+    // setInterval(() => {
+    //   axios.get('publish')
+    //     .then(res => setLog(res.data.log))
+    //     .catch(err => console.log(err))
+    // }, 2000)
     setInterval(() => {
-      axios.get('publish')
-        .then(res => setLog(res.data.log))
-        .catch(err => console.log(err))
+      axios.get('projects').then(res => {
+        const b = {}
+        res.data.forEach(p => b[p.name] = p.selectedBranch)
+        setBranches(b)
+        setProjects(res.data)
+      })
     }, 2000)
   }, [])
 
@@ -25,7 +37,7 @@ function App() {
       setBranches(b)
       setProjects(res.data)
     })
-    setProject(null)
+    clearForm()
   }
 
   function changeBranch(name, branch) {
@@ -34,10 +46,10 @@ function App() {
   }
 
   function save() {
-    axios.post('project', project)
+    axios.post('project', { name: projectName, path: projectPath })
       .then(res => {
         if (res.data && res.data.error)
-          console.log(res.data)
+          showError(res.data.error)
         else
           refresh()
       })
@@ -60,24 +72,31 @@ function App() {
     axios.post('publish', { project: name, branch: branches[name] })
       .then(res => console.log(res))
       .catch(err => console.log(err))
-      setLog('')
+    setLog('')
   }
 
-  function cancel() {
-    setProject(null)
+  function run(name) {
+    axios.post(`run/${name}`)
+      .then(res => console.log(res.data))
+      .catch(err => console.log(err))
   }
 
-  function setValue(prop, val) {
-    if (project) {
-      project[prop] = val
-    }
-    setProject(project)
+  function clearForm() {
+    setProjectName('')
+    setProjectPath('')
+    setEdition(false)
+  }
+
+  function showError(message) {
+    setError(message || '')
+    setTimeout(() => setError(''), 3000)
   }
 
   return (
     <div className="App">
       <header className="App-header">
-        <table className="projects-table">
+        <h2>CI/CD em Node.js para aplicações .Net Core </h2>
+        <table hidden={!projects.length} className="projects-table">
           <thead>
             <tr>
               <th>Nome</th>
@@ -90,32 +109,36 @@ function App() {
             {projects.map(p => (
               <tr key={p.name}>
                 <td>{p.name}</td>
-                <td className="path-cell">{p.path}</td>
+                <td className="path-cell">{p.path + p.fileName}</td>
                 <td>
                   <select onChange={val => changeBranch(p.name, val.target.value)}>
                     {p.branches.map(x => <option key={x}>{x}</option>)}
                   </select>
                 </td>
                 <td>
-                  <button className="btn" onClick={() => updateBranches(p.name)}>Atualizar</button>
-                  <button className="btn" onClick={() => remove(p.name)}>Remover</button>
-                  <button className="btn" onClick={() => publish(p.name)}>Publicar</button>
+                  <button className="btn btn-success btn-sm" onClick={() => updateBranches(p.name)}>Atualizar</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Remover</button>
+                  <button className="btn btn-info btn-sm" onClick={() => publish(p.name)}>Publicar</button>
+                  <button hidden={!p.published} className="btn btn-info btn-sm" onClick={() => run(p.name)}>{p.running ? 'Parar' : 'Rodar'}</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button className="btn" onClick={() => setProject({})}>Novo</button>
-        <button className="btn" onClick={() => refresh({})}>Atualizar</button>
-        <div className="divForm" hidden={!project}>
-          <span>Nome:</span><input onChange={val => setValue('name', val.target.value)} />
-          <br />
-          <span>Path:</span><input onChange={val => setValue('path', val.target.value)} />
-          <br />
-          <button className="btn" onClick={() => cancel()}>Cancelar</button>
-          <button className="btn" onClick={() => save()}>Salvar</button>
+        <button className="btn-add-projeto btn btn-light btn-sm" onClick={() => setEdition(true)}>Adicionar Projeto</button>
+        <div className="divForm" hidden={!edition}>
+          <div className="form-group">
+            <span className="label-form">Nome:</span><input value={projectName} onChange={val => setProjectName(val.target.value)} />
+          </div>
+          <div className="form-group">
+            <span className="label-form">Arquivo .csproj:</span><input value={projectPath} onChange={val => setProjectPath(val.target.value)} />
+            <small id="emailHelp" className="form-text text-muted">Caminho do arquivo .csproj do projeto.</small>
+          </div>
+          <button className="btn btn-light" onClick={() => clearForm()}>Cancelar</button>
+          <button className="btn btn-success" onClick={() => save()}>Salvar</button>
         </div>
-        <textarea hidden={!log} value={log} className="text-log" disabled={true}>
+        <span className="error-message">{error}</span>
+        <textarea hidden={!log || !projects.length} value={log} className="text-log" disabled={true}>
         </textarea>
       </header>
     </div>

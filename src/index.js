@@ -16,16 +16,26 @@ app.post('/publish', (req, res) => {
     res.json(projectService.currentPublish())
 })
 
+app.post('/run/:name', (req, res) => {
+    const { name } = req.params || {}
+    projectService.run(name)
+    res.json(projectService.runningProcesses)
+})
+
 app.get('/publish', (req, res) => res.json(projectService.currentPublish()))
 
 app.post('/project', (req, res) => {
     const { name, path } = req.body || {}
-    if (!name || !path)
-        return res.json({ error: 'Informe o nome e o caminho do projeto.' })
-    if (!fs.existsSync(path))
-        return res.status(200).json({ error: 'O diretório informado não existe.' })
     try {
-        projectService.save({ name, path })
+        if (!name || !path)
+            throw { message: 'Informe o nome e o arquivo.' }
+        const fileName = (/[a-zA-Z0-9-.]{2,}csproj$/.exec(path) || [])[0]
+        if (!fileName)
+            throw { message: 'Arquivo inválido.' }
+        if (!fs.existsSync(path))
+            throw { message: 'O arquivo não foi localizado.' }
+
+        projectService.save({ name, path: path.replace(fileName, ''), fileName })
         res.json('Salvo com sucesso')
     } catch (ex) {
         res.json({ error: ex.message })
