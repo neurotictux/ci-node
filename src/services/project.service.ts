@@ -1,125 +1,79 @@
-import { unlinkSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { execSync, spawn } from 'child_process'
+import { readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { spawn, execSync, exec } from 'child_process'
+import { Config } from 'src/config'
+import { Project } from 'src/models'
+import { LogType, onLog } from '../server'
 
-const pathFile = join(__dirname, '..', 'projects.json')
-const pathLogs = join(__dirname, '..', 'logs')
-const publishPath = join(__dirname, '..', 'publish')
-const isLinux = process.platform === 'linux'
-
-let currentProcess = null
-let runningProcesses = []
-
-if (!existsSync(pathFile))
-    writeFileSync(pathFile, JSON.stringify([]), 'utf-8')
-
-if (!existsSync(pathLogs))
-    mkdirSync(pathLogs)
-
-if (!existsSync(publishPath))
-    mkdirSync(publishPath)
-
-let runnerPublish = null
-let runnerLoadBranches = null
-let runnerApp = null
-
-if (isLinux) {
-    runnerPublish = join(__dirname, 'scripts', 'publish.sh')
-    runnerLoadBranches = `sh ${join(__dirname, 'scripts', 'load-branches.sh')}`
-    runnerApp = join(__dirname, 'scripts', 'run.sh')
-} else {
-    runnerPublish = `powershell ${join(__dirname, 'scripts', 'publish.ps1')}`
-    runnerLoadBranches = `powershell ${join(__dirname, 'scripts', 'load-branches.ps1')}`
-    runnerApp = `powershell ${join(__dirname, 'scripts', 'run.sh')}`
-}
-const resolveString = str => (str || '').replace(/[ ]/g, '')
-
-const loadAll = () => JSON.parse(readFileSync(pathFile, 'utf-8')) || []
-
-const loadOne = name => loadAll().find(p => p.name === name)
-
-const save = proj => {
-    const projects = loadAll().filter(p => p.name.toLowerCase() !== proj.name.toLowerCase())
-    proj.branches = []
-    projects.push(proj)
-    writeFileSync(pathFile, JSON.stringify(projects), 'utf-8')
-    updateBranches(proj.name)
+interface ICurrentProcess {
+    logFile: string
+    name: string
+    branch: string
+    publishing: boolean
 }
 
-const remove = name => {
-    const projects = loadAll().filter(p => p.name.toLowerCase() !== name.toLowerCase())
-    writeFileSync(pathFile, JSON.stringify(projects), 'utf-8')
-}
+export class ProjectService {
 
-const updateBranches = name => {
-    const projects = loadAll()
-    const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
-    const outputPath = join(__dirname, `branches_${name}`)
-    execSync(`${runnerLoadBranches} ${name} ${proj.path} ${outputPath}`)
-    const result = readFileSync(outputPath, 'utf-8').replace(/(refs[/](heads|(remotes[/]origin))[/])|(\n)/g, '')
-    unlinkSync(outputPath)
-    proj.branches = result.split(' ').map(p => p.trim())
-    proj.branches = proj.branches.filter((v, i, arr) => arr.indexOf(v) === i)
-    proj.selectedBranch = proj.selectedBranch && proj.branches.includes(proj.selectedBranch) ? proj.selectedBranch : proj.branches[0]
-    writeFileSync(pathFile, JSON.stringify(projects), 'utf-8')
-}
+    private static currentProcess: ICurrentProcess
 
-const publish = (name, branch) => {
-    if (currentProcess && currentProcess.publishing)
-        throw 'Há um projeto sendo publicado'
-    name = resolveString(name)
-    branch = resolveString(branch)
-    const proj = loadAll().find(p => p.name === name)
-    const logFile = join(pathLogs, `${name}.log`)
-    const publishFolder = join(publishPath, name)
-    const child = spawn('sh', [runnerPublish, proj.path, branch, publishFolder])
-    child.stdout.on('data', data => {
-        const str = data.toString()
-        if (str && !str.includes('Progress'))
-            console.log(data.toString())
-    })
-    child.stdout.on('close', () => {
-        currentProcess.publishing = false
-        proj.published = true
-        proj.selectedBranch = branch
-        save(proj)
-    })
-    currentProcess = { logFile, name, branch }
-}
-
-const run = name => {
-    console.log(runningProcesses)
-    const proj = loadOne(name)
-    const running = runningProcesses.find(p => p.name === name)
-    if (running) {
-        process.kill(running.pid)
-        console.log(`${name} killed.`)
-        runningProcesses = runningProcesses.filter(p => p.name !== name)
-    } else {
-        const child = spawn('sh', [runnerApp, join(publishPath, name), proj.fileName.replace('csproj', 'dll')])
-        child.stdout.on('data', data => console.log(data.toString()))
-        child.stdout.on('close', data => console.log('FECHOU'))
-        runningProcesses.push({ name, pid: child.pid })
-        console.log(`${child.pid} started`)
+    getAll(): Project[] {
+        return JSON.parse(readFileSync(Config.projectsJsonPath, 'utf-8')) || []
     }
-    proj.running = !running
-    save(proj)
-}
 
-const currentPublish = () => {
-    const result = Object.assign({}, currentProcess)
-    if (result && result.logFile)
-        result.log = readFileSync(result.logFile, 'utf-8')
-    return Object.assign({}, result)
-}
+    get(name: string): Project {
+        return this.getAll().find(p => p.name === name)
+    }
 
-export const projectService = {
-    loadAll,
-    save,
-    updateBranches,
-    remove,
-    publish,
-    run,
-    currentPublish,
-    runningProcesses
+    save(proj: Project) {
+        const projects = this.getAll().filter(p => p.name.toLowerCase() !== proj.name.toLowerCase())
+        proj.branches = []
+        projects.push(proj)
+        writeFileSync(Config.projectsJsonPath, JSON.stringify(projects), 'utf-8')
+        this.updateBranches(proj.name)
+    }
+
+    remove(name: string) {
+        const projects = this.getAll().filter(p => p.name.toLowerCase() !== name.toLowerCase())
+        writeFileSync(Config.projectsJsonPath, JSON.stringify(projects), 'utf-8')
+    }
+
+    updateBranches(name: string) {
+        const projects = this.getAll()
+        const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
+        const outputPath = join(__dirname, `branches_${name}`)
+        execSync(`${Config.runnerLoadBranches} ${name} ${proj.path} ${outputPath}`)
+        const result = readFileSync(outputPath, 'utf-8').replace(/(refs[/](heads|(remotes[/]origin))[/])|(\n)/g, '')
+        unlinkSync(outputPath)
+        proj.branches = result.split(' ').map(p => p.trim())
+        proj.branches = proj.branches.filter((v, i, arr) => arr.indexOf(v) === i)
+        if (proj.selectedBranch && proj.branches.includes(proj.selectedBranch))
+            proj.selectedBranch = proj.selectedBranch
+        else
+            proj.selectedBranch = proj.branches[0]
+        writeFileSync(Config.projectsJsonPath, JSON.stringify(projects), 'utf-8')
+    }
+
+    publish(name: string, branch: string) {
+        if (ProjectService.currentProcess && ProjectService.currentProcess.publishing)
+            throw Error('Há um projeto sendo publicado')
+
+        name = (name || '').replace(/[ ]/g, '')
+        branch = (branch || '').replace(/[ ]/g, '')
+        const proj = this.getAll().find(p => p.name === name)
+        const logFile = join(Config.logsPath, `${name}.log`)
+        const publishFolder = join(Config.publishPath, name)
+        const child = spawn('sh', [Config.runnerPublish, proj.path, branch, publishFolder])
+        child.stdout.on('data', data => {
+            const str = data.toString()
+            if (str && !str.includes('Progress'))
+                onLog(name, LogType.AppData, data.toString())
+        })
+        child.stdout.on('close', () => {
+            ProjectService.currentProcess.publishing = false
+            proj.published = true
+            proj.selectedBranch = branch
+            this.save(proj)
+        })
+        ProjectService.currentProcess = { logFile, name, branch, publishing: true }
+    }
 }

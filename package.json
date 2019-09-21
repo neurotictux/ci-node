@@ -7,8 +7,9 @@
     },
     "scripts": {
         "start": "nodemon --watch src --exec ts-node src/index.ts",
-        "build": "npm run lint && npm run tsc",
-        "lint": "tslint ./src/**/*.ts",
+        "build": "npm run lint && tsc",
+        "lint": "tslint --project tsconfig.json --fix",
+        "lint2": "tslint ./src/**/*.ts --fix",
         "precommit": "npm test",
         "prepush": "npm test"
     },

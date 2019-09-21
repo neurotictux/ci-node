@@ -5,5 +5,5 @@ export class Project {
     branches: string[]
     published: true
     selectedBranch: string
-    running: false
+    running: boolean
 }

@@ -1,31 +1,36 @@
-import * as express from 'express'
-import {Request, Response} from 'express'
 import * as bodyParser from 'body-parser'
+import * as express from 'express'
 import { existsSync } from 'fs'
+import { writeFileSync } from 'fs'
 import { createServer } from 'http'
 
-import { projectService } from './services/project.service'
+import { Project } from './models'
+import { AppRunner } from './services/app-runner'
+import { ProjectService } from './services/project.service'
 
-const nome = 'teste'
+const projectService = new ProjectService()
+const appRunner = new AppRunner()
 
 const app = express()
 app.use(bodyParser.json())
 
-app.get('/projects', (req, res) => res.json(projectService.loadAll()))
+app.get('/projects', (req, res) => {
+    const projects = projectService.getAll()
+    projects.forEach(p => p.running = appRunner.isRunning(p.name))
+    res.json(projects)
+})
 
 app.post('/publish', (req, res) => {
     const { project, branch } = req.body || {}
     projectService.publish(project, branch)
-    res.json(projectService.currentPublish())
+    res.end()
 })
 
 app.post('/run/:name', (req, res) => {
     const { name } = req.params || {}
-    projectService.run(name)
-    res.json(projectService.runningProcesses)
+    appRunner.run(name)
+    res.end()
 })
-
-app.get('/publish', (req, res) => res.json(projectService.currentPublish()))
 
 app.post('/project', (req, res) => {
     const { name, path } = req.body || {}
@@ -37,9 +42,12 @@ app.post('/project', (req, res) => {
             throw { message: 'Arquivo inválido.' }
         if (!existsSync(path))
             throw { message: 'O arquivo não foi localizado.' }
-
-        projectService.save({ name, path: path.replace(fileName, ''), fileName })
-        res.json('Salvo com sucesso')
+        const proj = new Project()
+        proj.name = name
+        proj.path = path.replace(fileName, '')
+        proj.fileName = fileName
+        projectService.save(proj)
+        res.json({ message: 'Salvo com sucesso' })
     } catch (ex) {
         res.json({ error: ex.message })
     }
@@ -60,3 +68,16 @@ app.delete('/project/:name', (req, res) => {
 const server = createServer(app)
 
 server.listen(8000)
+
+export enum LogType {
+    AppStart = 'APP_RUN_START',
+    AppData = 'APP_RUN_DATA',
+    AppEnd = 'APP_RUN_END',
+    PublishStart = 'APP_RUN_START',
+    PublishData = 'APP_RUN_DATA',
+    PublishEnd = 'APP_RUN_END',
+}
+
+export const onLog = (appName: string, type: LogType, data: string = '') => {
+    writeFileSync(appName, data)
+}
