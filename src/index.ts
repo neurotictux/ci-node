@@ -1,9 +1,12 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const fs = require('fs')
-const http = require('http')
-const { execSync } = require('child_process')
-const projectService = require('./projectService')
+import * as express from 'express'
+import {Request, Response} from 'express'
+import * as bodyParser from 'body-parser'
+import { existsSync } from 'fs'
+import { createServer } from 'http'
+
+import { projectService } from './services/project.service'
+
+const nome = 'teste'
 
 const app = express()
 app.use(bodyParser.json())
@@ -32,7 +35,7 @@ app.post('/project', (req, res) => {
         const fileName = (/[a-zA-Z0-9-.]{2,}csproj$/.exec(path) || [])[0]
         if (!fileName)
             throw { message: 'Arquivo inválido.' }
-        if (!fs.existsSync(path))
+        if (!existsSync(path))
             throw { message: 'O arquivo não foi localizado.' }
 
         projectService.save({ name, path: path.replace(fileName, ''), fileName })
@@ -54,6 +57,6 @@ app.delete('/project/:name', (req, res) => {
     res.end()
 })
 
-const server = http.createServer(app)
+const server = createServer(app)
 
 server.listen(8000)

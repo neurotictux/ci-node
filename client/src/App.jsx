@@ -15,11 +15,6 @@ function App() {
 
   useEffect(() => {
     refresh()
-    // setInterval(() => {
-    //   axios.get('publish')
-    //     .then(res => setLog(res.data.log))
-    //     .catch(err => console.log(err))
-    // }, 2000)
     setInterval(() => {
       axios.get('projects').then(res => {
         const b = {}

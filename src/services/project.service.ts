@@ -1,7 +1,7 @@
-const kill = require('tree-kill')
-const { unlinkSync, readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs')
-const { join } = require('path')
-const { spawn, execSync, exec } = require('child_process')
+import { unlinkSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { join } from 'path'
+import { spawn, execSync, exec } from 'child_process'
+
 const pathFile = join(__dirname, '..', 'projects.json')
 const pathLogs = join(__dirname, '..', 'logs')
 const publishPath = join(__dirname, '..', 'publish')
@@ -24,7 +24,7 @@ let runnerLoadBranches = null
 let runnerApp = null
 
 if (isLinux) {
-    runnerPublish = `sh ${join(__dirname, 'scripts', 'publish.sh')}`
+    runnerPublish = join(__dirname, 'scripts', 'publish.sh')
     runnerLoadBranches = `sh ${join(__dirname, 'scripts', 'load-branches.sh')}`
     runnerApp = join(__dirname, 'scripts', 'run.sh')
 } else {
@@ -72,14 +72,19 @@ const publish = (name, branch) => {
     const proj = loadAll().find(p => p.name === name)
     const logFile = join(pathLogs, `${name}.log`)
     const publishFolder = join(publishPath, name)
-    const command = `${runnerPublish} ${proj.path} ${branch} ${publishFolder} ${logFile}`
-    currentProcess = { logFile, name, branch }
-    exec(command, () => {
+    const child = spawn('sh', [runnerPublish, proj.path, branch, publishFolder])
+    child.stdout.on('data', data => {
+        const str = data.toString()
+        if (str && !str.includes('Progress'))
+            console.log(data.toString())
+    })
+    child.stdout.on('close', () => {
         currentProcess.publishing = false
         proj.published = true
         proj.selectedBranch = branch
         save(proj)
     })
+    currentProcess = { logFile, name, branch }
 }
 
 const run = name => {
@@ -87,11 +92,13 @@ const run = name => {
     const proj = loadOne(name)
     const running = runningProcesses.find(p => p.name === name)
     if (running) {
-        kill(running.pid)
+        process.kill(running.pid)
         console.log(`${name} killed.`)
         runningProcesses = runningProcesses.filter(p => p.name !== name)
     } else {
         const child = spawn('sh', [runnerApp, join(publishPath, name), proj.fileName.replace('csproj', 'dll')])
+        child.stdout.on('data', data => console.log(data.toString()))
+        child.stdout.on('close', data => console.log('FECHOU'))
         runningProcesses.push({ name, pid: child.pid })
         console.log(`${child.pid} started`)
     }
@@ -106,7 +113,7 @@ const currentPublish = () => {
     return Object.assign({}, result)
 }
 
-module.exports = {
+export const projectService = {
     loadAll,
     save,
     updateBranches,

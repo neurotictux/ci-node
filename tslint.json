@@ -1,0 +1,16 @@
+{
+    "extends": "tslint:recommended",
+    "rules": {
+        "max-line-length": {
+            "options": [
+                120
+            ]
+        },
+        "no-any": true,
+        "no-empty": true,
+        "no-unused-variable": true,
+        "no-var-keyword": true,
+        "semicolon": false,
+        "quotemark": [false, "simple"]
+    }
+}

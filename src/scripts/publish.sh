@@ -2,27 +2,28 @@
 PATH_PROJECT=$1
 BRANCH_NAME=$2
 PUBLISH_FOLDER=$3
-LOG_FILE=$4
 NOW=$(date '+%A %W %Y %X')
 
-echo $NOW >$LOG_FILE
+echo $NOW
 cd $PATH_PROJECT
-
-git checkout $BRANCH_NAME
-
-if [ $? -eq 0 ]; then
-    echo "Updating ..." >>$LOG_FILE
-    git pull
+git checkout $BRANCH_NAME 2>&1
+LAST_ERROR=$?
+# echo $ERRO
+echo $LAST_ERROR
+if [ $LAST_ERROR -eq 0 ]; then
+    echo "Updating ..."
+    git pull origin $BRANCH_NAME 2>&1
+    LAST_ERROR=$?
 fi
-echo "STEP 1" >>$LOG_FILE
-if [ $? -eq 0 ]; then
-    echo "Publishing branch '$BRANCH_NAME'" >>$LOG_FILE
-    dotnet publish -o $PUBLISH_FOLDER >>$LOG_FILE
+echo $LAST_ERROR
+if [ $LAST_ERROR -eq 0 ]; then
+    echo "Publishing branch '$BRANCH_NAME'"
+    dotnet publish -o $PUBLISH_FOLDER
+    LAST_ERROR=$?
 fi
-echo "STEP 2" >>$LOG_FILE
-
-if [ $? -eq 0 ]; then
-    echo 'Successfully published.' >>$LOG_FILE
+echo $LAST_ERROR
+if [ $LAST_ERROR -eq 0 ]; then
+    echo 'Successfully published.'
 else
-    echo 'Errors in publishing.' >>$LOG_FILE
+    echo 'Errors in publishing.'
 fi
