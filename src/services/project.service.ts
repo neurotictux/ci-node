@@ -39,19 +39,30 @@ export class ProjectService {
     }
 
     updateBranches(name: string) {
-        const projects = this.getAll()
-        const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
-        const outputPath = join(__dirname, `branches_${name}`)
-        execSync(`${Config.runnerLoadBranches} ${name} ${proj.path} ${outputPath}`)
-        const result = readFileSync(outputPath, 'utf-8').replace(/(refs[/](heads|(remotes[/]origin))[/])|(\n)/g, '')
-        unlinkSync(outputPath)
-        proj.branches = result.split(' ').map(p => p.trim())
-        proj.branches = proj.branches.filter((v, i, arr) => arr.indexOf(v) === i)
-        if (proj.selectedBranch && proj.branches.includes(proj.selectedBranch))
-            proj.selectedBranch = proj.selectedBranch
-        else
-            proj.selectedBranch = proj.branches[0]
-        writeFileSync(Config.projectsJsonPath, JSON.stringify(projects), 'utf-8')
+        return new Promise(resolve => {
+
+            const projects = this.getAll()
+            const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
+            const child = spawn(Config.shell, [Config.runnerLoadBranches, proj.path])
+            let branches = ''
+            child.stdout.on('data', data => {
+                const str = data.toString()
+                if (str.includes('refs'))
+                    branches += str
+            })
+
+            child.stdout.on('close', () => {
+                branches = branches.replace(/(refs[/](heads|(remotes[/]origin))[/])|(\n)/g, '')
+                proj.branches = branches.split(' ').map(p => p.trim())
+                proj.branches = proj.branches.filter((v, i, arr) => v && v !== 'HEAD' && arr.indexOf(v) === i)
+                if (proj.selectedBranch && proj.branches.includes(proj.selectedBranch))
+                    proj.selectedBranch = proj.selectedBranch
+                else
+                    proj.selectedBranch = proj.branches[0]
+                writeFileSync(Config.projectsJsonPath, JSON.stringify(projects), 'utf-8')
+                resolve()
+            })
+        })
     }
 
     publish(name: string, branch: string) {
@@ -63,7 +74,7 @@ export class ProjectService {
         const proj = this.getAll().find(p => p.name === name)
         const logFile = join(Config.logsPath, `${name}.log`)
         const publishFolder = join(Config.publishPath, name)
-        const child = spawn('sh', [Config.runnerPublish, proj.path, branch, publishFolder])
+        const child = spawn(Config.shell, [Config.runnerPublish, proj.path, branch, publishFolder])
         onLog(name, LogType.PublishStart)
         proj.logPublish = ''
         child.stdout.on('data', data => {

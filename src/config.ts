@@ -19,15 +19,18 @@ if (!existsSync(publishPath))
 let runnerPublish = null
 let runnerLoadBranches = null
 let runnerApp = null
+let shell = null
 
 if (isLinux) {
     runnerPublish = join(__dirname, 'scripts', 'publish.sh')
-    runnerLoadBranches = `sh ${join(__dirname, 'scripts', 'load-branches.sh')}`
+    runnerLoadBranches = join(__dirname, 'scripts', 'load-branches.sh')
     runnerApp = join(__dirname, 'scripts', 'run.sh')
+    shell = 'sh'
 } else {
-    runnerPublish = `powershell ${join(__dirname, 'scripts', 'publish.ps1')}`
-    runnerLoadBranches = `powershell ${join(__dirname, 'scripts', 'load-branches.ps1')}`
-    runnerApp = `powershell ${join(__dirname, 'scripts', 'run.sh')}`
+    runnerPublish = join(__dirname, 'scripts', 'publish.ps1')
+    runnerLoadBranches = join(__dirname, 'scripts', 'load-branches.ps1')
+    runnerApp = join(__dirname, 'scripts', 'run.sh')
+    shell = 'powershell'
 }
 
 export const Config = {
@@ -37,5 +40,6 @@ export const Config = {
     projectsJsonPath,
     logsPath,
     publishPath,
-    isLinux
+    isLinux,
+    shell
 }

@@ -1,16 +1,14 @@
-$projectPath = $args[0]
-$branchName = $args[1]
-$publishFolder = $args[2]
+@echo off
+SET projectPath=%1
+SET branchName=%2
+SET publishFolder=%3
 
-echo (Get-Date)
-cd $projectPath
-
-echo 'Iniciando publish'
-echo $projectPath
-echo $branchName
-echo $publishFolder
+echo %date% %time%
+cd %projectPath%
 
 git checkout $branchName
+
+if ERRORLEVEL 1 echo Error
 
 if($LastExitCode -ne 0)
 {

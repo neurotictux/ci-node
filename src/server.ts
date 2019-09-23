@@ -57,8 +57,7 @@ app.post('/project', (req, res) => {
 
 app.post('/branches/:name', (req, res) => {
     const { name } = req.params || {}
-    projectService.updateBranches(name)
-    res.end()
+    projectService.updateBranches(name).then(() => res.end())
 })
 
 app.delete('/project/:name', (req, res) => {
@@ -87,5 +86,4 @@ export const onLog = (appName: string, type: LogType, data: string = '') => {
     const event = type.toString()
     console.log(event, data)
     clients.forEach(p => (<any>p).emit(event, { appName, data }))
-    // io.clients().emit(type.toString(), { appName, data })
 }
