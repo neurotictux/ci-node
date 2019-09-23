@@ -4,3 +4,4 @@ projects.json
 logs
 publish
 dist
+yarn-error.log

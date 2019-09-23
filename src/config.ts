@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
-const projectsJsonPath = join(__dirname, '..', 'projects.json')
-const logsPath = join(__dirname, '..', 'logs')
-const publishPath = join(__dirname, '..', 'publish')
+const configDir = join(__dirname, '..')
+const projectsJsonPath = join(configDir, 'projects.json')
+const logsPath = join(configDir, 'logs')
+const publishPath = join(configDir, 'publish')
 const isLinux = process.platform === 'linux'
 
 if (!existsSync(projectsJsonPath))

@@ -1,8 +1,9 @@
 import { execSync, spawn } from 'child_process'
 import { readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { Config } from 'src/config'
-import { Project } from 'src/models'
+
+import { Config } from '../config'
+import { Project } from '../models'
 import { LogType, onLog } from '../server'
 
 interface ICurrentProcess {
@@ -63,15 +64,23 @@ export class ProjectService {
         const logFile = join(Config.logsPath, `${name}.log`)
         const publishFolder = join(Config.publishPath, name)
         const child = spawn('sh', [Config.runnerPublish, proj.path, branch, publishFolder])
+        onLog(name, LogType.PublishStart)
+        proj.logPublish = ''
         child.stdout.on('data', data => {
             const str = data.toString()
-            if (str && !str.includes('Progress'))
-                onLog(name, LogType.AppData, data.toString())
+            if (str && str.includes('Progress'))
+                onLog(name, LogType.PublishData, proj.logPublish + str)
+            else {
+                proj.logPublish += str
+                onLog(name, LogType.PublishData, proj.logPublish)
+            }
         })
         child.stdout.on('close', () => {
+            onLog(name, LogType.PublishEnd, 'ERROR')
             ProjectService.currentProcess.publishing = false
             proj.published = true
             proj.selectedBranch = branch
+            proj.errorInPublish = proj.logPublish.includes('Errors in publishing.')
             this.save(proj)
         })
         ProjectService.currentProcess = { logFile, name, branch, publishing: true }

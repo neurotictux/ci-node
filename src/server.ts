@@ -1,8 +1,10 @@
+import { existsSync, writeFileSync } from 'fs'
+import { createServer } from 'http'
+
 import * as bodyParser from 'body-parser'
 import * as express from 'express'
-import { existsSync } from 'fs'
-import { writeFileSync } from 'fs'
-import { createServer } from 'http'
+import * as socketio from 'socket.io'
+import { Client } from 'socket.io'
 
 import { Project } from './models'
 import { AppRunner } from './services/app-runner'
@@ -66,6 +68,9 @@ app.delete('/project/:name', (req, res) => {
 })
 
 const server = createServer(app)
+const io = socketio(server)
+const clients: Client[] = []
+io.on('connection', (client: Client) => clients.push(client))
 
 server.listen(8000)
 
@@ -73,11 +78,14 @@ export enum LogType {
     AppStart = 'APP_RUN_START',
     AppData = 'APP_RUN_DATA',
     AppEnd = 'APP_RUN_END',
-    PublishStart = 'APP_RUN_START',
-    PublishData = 'APP_RUN_DATA',
-    PublishEnd = 'APP_RUN_END',
+    PublishStart = 'APP_PUBLISH_START',
+    PublishData = 'APP_PUBLISH_DATA',
+    PublishEnd = 'APP_PUBLISH_END',
 }
 
 export const onLog = (appName: string, type: LogType, data: string = '') => {
-    writeFileSync(appName, data)
+    const event = type.toString()
+    console.log(event, data)
+    clients.forEach(p => (<any>p).emit(event, { appName, data }))
+    // io.clients().emit(type.toString(), { appName, data })
 }

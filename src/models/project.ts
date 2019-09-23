@@ -6,4 +6,6 @@ export class Project {
     published: true
     selectedBranch: string
     running: boolean
+    logPublish: string
+    errorInPublish: boolean
 }

@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'
+import openSocket from 'socket.io-client'
 import 'bootstrap/dist/css/bootstrap.min.css'
+
 import './App.css';
+
+const LogType = {
+  AppStart: 'APP_RUN_START',
+  AppData: 'APP_RUN_DATA',
+  AppEnd: 'APP_RUN_END',
+  PublishStart: 'APP_PUBLISH_START',
+  PublishData: 'APP_PUBLISH_DATA',
+  PublishEnd: 'APP_PUBLISH_END',
+}
+
+const socket = openSocket('http://localhost:8000')
 
 function App() {
 
@@ -15,20 +28,17 @@ function App() {
 
   useEffect(() => {
     refresh()
-    setInterval(() => {
-      axios.get('projects').then(res => {
-        const b = {}
-        res.data.forEach(p => b[p.name] = p.selectedBranch)
-        setBranches(b)
-        setProjects(res.data)
-      })
-    }, 2000)
+
+    socket.on(LogType.PublishStart, () => setLog(''))
+    socket.on(LogType.PublishData, data => showLog(data.data))
+    socket.on(LogType.PublishEnd, () => console.log('publish end'))
+
   }, [])
 
   function refresh() {
     axios.get('projects').then(res => {
       const b = {}
-      res.data.forEach(p => b[p.name] = p.branches[0])
+      res.data.forEach(p => b[p.name] = p.selectedBranch)
       setBranches(b)
       setProjects(res.data)
     })
@@ -87,6 +97,13 @@ function App() {
     setTimeout(() => setError(''), 3000)
   }
 
+  function showLog(text) {
+    setLog(text)
+    const area = document.getElementById('text-log')
+    if (area)
+      area.scrollTo(0, area.scrollTopMax)
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -115,6 +132,7 @@ function App() {
                   <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Remover</button>
                   <button className="btn btn-info btn-sm" onClick={() => publish(p.name)}>Publicar</button>
                   <button hidden={!p.published} className="btn btn-info btn-sm" onClick={() => run(p.name)}>{p.running ? 'Parar' : 'Rodar'}</button>
+                  <button hidden={!p.published} className="btn btn-light btn-sm" onClick={() => showLog(p.logPublish)}>Log</button>
                 </td>
               </tr>
             ))}
@@ -133,7 +151,7 @@ function App() {
           <button className="btn btn-success" onClick={() => save()}>Salvar</button>
         </div>
         <span className="error-message">{error}</span>
-        <textarea hidden={!log || !projects.length} value={log} className="text-log" disabled={true}>
+        <textarea hidden={!log || !projects.length} value={log} id="text-log" disabled={true}>
         </textarea>
       </header>
     </div>
