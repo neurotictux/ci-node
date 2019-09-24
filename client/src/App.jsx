@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import axios from 'axios'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 import './App.css';
 import { StatusApp, StatusComponent } from './components/StatusApp'
 import { PublishedApps } from './components/PublishedApps'
-
-import { Socket, LogType } from './socket'
+import { setRunning } from './store/actions'
 
 function App() {
 
@@ -18,22 +18,21 @@ function App() {
   const [log, setLog] = useState('')
   const [error, setError] = useState('')
   const [publishing, setPublishing] = useState('')
+  const dispatch = useDispatch()
 
   useEffect(() => {
     refresh()
-
-    Socket.on(LogType.PublishStart, () => setLog(''))
-    Socket.on(LogType.PublishData, data => {
-      setPublishing(data.appName)
-      showLog(data.data)
-    })
-    Socket.on(LogType.PublishEnd, () => setPublishing(''))
   }, [])
 
   function refresh() {
     axios.get('projects').then(res => {
       const b = {}
       res.data.forEach(p => b[p.name] = p.selectedBranch)
+
+      const appsRunning = res.data.filter(p => p.running).map(p => p.name)
+      if (appsRunning.length)
+        dispatch(setRunning(appsRunning))
+
       setBranches(b)
       setProjects(res.data)
     })

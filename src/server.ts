@@ -86,8 +86,6 @@ export enum LogType {
     PublishEnd = 'APP_PUBLISH_END',
 }
 
-export const onLog = (appName: string, type: LogType, data: string = '') => {
-    const event = type.toString()
-    console.log(event, data)
-    clients.forEach(p => (<any>p).emit(event, { appName, data }))
+export const onLog = (name: string, type: LogType, log: string = '') => {
+    clients.forEach(p => (<any>p).emit(type.toString(), { name, log }))
 }
