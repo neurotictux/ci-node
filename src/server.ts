@@ -30,7 +30,10 @@ app.post('/publish', (req, res) => {
 
 app.post('/run/:name', (req, res) => {
     const { name } = req.params || {}
-    appRunner.run(name)
+    if (appRunner.isRunning(name))
+        appRunner.stop(name)
+    else
+        appRunner.run(name)
     res.end()
 })
 
@@ -57,6 +60,7 @@ app.post('/project', (req, res) => {
 
 app.post('/branches/:name', (req, res) => {
     const { name } = req.params || {}
+    console.log(name)
     projectService.updateBranches(name).then(() => res.end())
 })
 

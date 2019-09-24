@@ -87,11 +87,11 @@ export class ProjectService {
             }
         })
         child.stdout.on('close', () => {
-            onLog(name, LogType.PublishEnd, 'ERROR')
             ProjectService.currentProcess.publishing = false
             proj.published = true
             proj.selectedBranch = branch
             proj.errorInPublish = proj.logPublish.includes('Errors in publishing.')
+            onLog(name, LogType.PublishEnd, proj.errorInPublish ? 'ERROR' : 'OK')
             this.save(proj)
         })
         ProjectService.currentProcess = { logFile, name, branch, publishing: true }

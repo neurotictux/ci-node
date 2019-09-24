@@ -8,7 +8,7 @@
   pointer-events: none;
 }
 
-.App-header {
+.app-container {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
@@ -16,7 +16,12 @@
   align-items: center;
   font-size: calc(10px + 2vmin);
   color: white;
-  padding-top: 60px;
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+
+.title {
+  margin-bottom: 30px;
 }
 
 .App-link {
@@ -39,10 +44,6 @@
   margin: 6px;
 }
 
-.divForm {
-  /* text-align: left;  */
-}
-
 .divForm span {
   margin-top: 10px;
   width: 100px;
@@ -53,7 +54,7 @@
   font-size: 12px;
 }
 
-#text-log {
+.text-log {
   font-size: 12px;
   max-width: 800px;
   resize: none;

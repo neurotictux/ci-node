@@ -1,5 +1,6 @@
 import { spawn } from 'child_process'
 import { join } from 'path'
+import * as TreeKill from 'tree-kill'
 
 import { Config } from '../config'
 import { RunningProcess } from '../models'
@@ -19,10 +20,13 @@ export class AppRunner {
 
     run(name: string): void {
         const proj = this.projectService.get(name)
-        const child = spawn('sh', [Config.runnerApp, join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll')])
+        const child = spawn(Config.shell, [Config.runnerApp, join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll')])
         onLog(name, LogType.AppStart)
         child.stdout.on('data', data => onLog(name, LogType.AppData, data.toString()))
-        child.stdout.on('close', () => onLog(name, LogType.AppEnd))
+        child.stdout.on('close', () => {
+            AppRunner.runningProcesses = AppRunner.runningProcesses.filter(p => p.name !== name)
+            onLog(name, LogType.AppEnd)
+        })
         AppRunner.runningProcesses.push({ name, pid: child.pid })
     }
 
@@ -32,10 +36,9 @@ export class AppRunner {
 
     stop(name: string) {
         const runningProcess = AppRunner.runningProcesses.find(p => p.name === name)
-        if (!runningProcess)
-            throw Error(`App '${name}' is not running.`)
-
-        process.kill(runningProcess.pid)
-        AppRunner.runningProcesses = AppRunner.runningProcesses.filter(p => p.name !== name)
+        if (runningProcess) {
+            TreeKill(runningProcess.pid)
+            AppRunner.runningProcesses = AppRunner.runningProcesses.filter(p => p.name !== name)
+        }
     }
 }

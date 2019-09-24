@@ -1,20 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'
-import openSocket from 'socket.io-client'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 import './App.css';
+import { StatusApp, StatusComponent } from './components/StatusApp'
+import { PublishedApps } from './components/PublishedApps'
 
-const LogType = {
-  AppStart: 'APP_RUN_START',
-  AppData: 'APP_RUN_DATA',
-  AppEnd: 'APP_RUN_END',
-  PublishStart: 'APP_PUBLISH_START',
-  PublishData: 'APP_PUBLISH_DATA',
-  PublishEnd: 'APP_PUBLISH_END',
-}
-
-const socket = openSocket('http://localhost:8000')
+import { Socket, LogType } from './socket'
 
 function App() {
 
@@ -25,14 +17,17 @@ function App() {
   const [branches, setBranches] = useState({})
   const [log, setLog] = useState('')
   const [error, setError] = useState('')
+  const [publishing, setPublishing] = useState('')
 
   useEffect(() => {
     refresh()
 
-    socket.on(LogType.PublishStart, () => setLog(''))
-    socket.on(LogType.PublishData, data => showLog(data.data))
-    socket.on(LogType.PublishEnd, () => console.log('publish end'))
-
+    Socket.on(LogType.PublishStart, () => setLog(''))
+    Socket.on(LogType.PublishData, data => {
+      setPublishing(data.appName)
+      showLog(data.data)
+    })
+    Socket.on(LogType.PublishEnd, () => setPublishing(''))
   }, [])
 
   function refresh() {
@@ -80,12 +75,6 @@ function App() {
     setLog('')
   }
 
-  function run(name) {
-    axios.post(`run/${name}`)
-      .then(res => console.log(res.data))
-      .catch(err => console.log(err))
-  }
-
   function clearForm() {
     setProjectName('')
     setProjectPath('')
@@ -99,20 +88,36 @@ function App() {
 
   function showLog(text) {
     setLog(text)
-    const area = document.getElementById('text-log')
+    const area = document.getElementById('text-log-publish')
     if (area)
       area.scrollTo(0, area.scrollTopMax)
   }
 
+  function getStatus(app) {
+    if (publishing === app.name)
+      return StatusApp.PROCESSING
+    else if (!app.errorInPublish && app.published)
+      return StatusApp.OK
+    else
+      return StatusApp.ERROR
+  }
+
   return (
     <div className="App">
-      <header className="App-header">
-        <h2>CI/CD em Node.js para aplicações .Net Core </h2>
+      <div className="app-container">
+        <h2 className="title">CI/CD em Node.js para aplicações .Net Core </h2>
+        <h4>Published</h4>
+
+        <div style={{ marginBottom: '40px' }}>
+          <PublishedApps projects={projects.filter(p => p.published)} />
+        </div>
+        <h3>Projects</h3>
         <table hidden={!projects.length} className="projects-table">
           <thead>
             <tr>
-              <th>Nome</th>
+              <th>Name</th>
               <th>Path</th>
+              <th>Status</th>
               <th>Branches</th>
               <th></th>
             </tr>
@@ -122,6 +127,7 @@ function App() {
               <tr key={p.name}>
                 <td>{p.name}</td>
                 <td className="path-cell">{p.path + p.fileName}</td>
+                <td><StatusComponent status={getStatus(p)} project={p} /></td>
                 <td>
                   <select onChange={val => changeBranch(p.name, val.target.value)}>
                     {p.branches.map(x => <option key={x}>{x}</option>)}
@@ -130,15 +136,15 @@ function App() {
                 <td>
                   <button className="btn btn-success btn-sm" onClick={() => updateBranches(p.name)}>Atualizar</button>
                   <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Remover</button>
-                  <button className="btn btn-info btn-sm" onClick={() => publish(p.name)}>Publicar</button>
-                  <button hidden={!p.published} className="btn btn-info btn-sm" onClick={() => run(p.name)}>{p.running ? 'Parar' : 'Rodar'}</button>
-                  <button hidden={!p.published} className="btn btn-light btn-sm" onClick={() => showLog(p.logPublish)}>Log</button>
+                  <br />
+                  <button className="btn btn-light btn-sm" hidden={!p.published} onClick={() => showLog(p.logPublish)}>Log</button>
+                  <button className="btn btn-light btn-sm" onClick={() => publish(p.name)}>Publicar</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button className="btn-add-projeto btn btn-light btn-sm" onClick={() => setEdition(true)}>Adicionar Projeto</button>
+        <button className="btn-add-projeto btn btn-light btn-sm" onClick={() => setEdition(true)}>Add</button>
         <div className="divForm" hidden={!edition}>
           <div className="form-group">
             <span className="label-form">Nome:</span><input value={projectName} onChange={val => setProjectName(val.target.value)} />
@@ -147,13 +153,16 @@ function App() {
             <span className="label-form">Arquivo .csproj:</span><input value={projectPath} onChange={val => setProjectPath(val.target.value)} />
             <small id="emailHelp" className="form-text text-muted">Caminho do arquivo .csproj do projeto.</small>
           </div>
-          <button className="btn btn-light" onClick={() => clearForm()}>Cancelar</button>
-          <button className="btn btn-success" onClick={() => save()}>Salvar</button>
+          <button className="btn btn-light" onClick={() => clearForm()}>Cancel</button>
+          <button className="btn btn-success" onClick={() => save()}>Save</button>
         </div>
         <span className="error-message">{error}</span>
-        <textarea hidden={!log || !projects.length} value={log} id="text-log" disabled={true}>
-        </textarea>
-      </header>
+        <div hidden={!log || !projects.length}>
+          <button className="btn btn-light" onClick={() => setLog('')}>Hide Log</button>
+          <textarea value={log} id="text-log-publish" className="text-log" disabled={true}>
+          </textarea>
+        </div>
+      </div>
     </div>
   );
 }
