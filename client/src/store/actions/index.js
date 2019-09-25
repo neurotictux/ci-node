@@ -6,5 +6,7 @@ export {
     logPublishData,
     logPublishEnd,
     logPublishStart,
-    setRunning
+    setRunning,
+    setPublishCurrentLog,
+    setPublishes
 } from './logActions'

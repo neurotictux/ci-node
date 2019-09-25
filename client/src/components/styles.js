@@ -1,5 +1,9 @@
 import styled, { keyframes } from 'styled-components'
 
+export const AppContainer = styled.div`
+    background-color: #282c34;
+`
+
 const Blink = keyframes`
     50% {
     opacity: 0;
@@ -35,12 +39,20 @@ export const StatusOk = styled(Status)`
 
 export const LogArea = styled.textarea`
   font-size: 12px;
-  max-width: 800px;
   resize: none;
   width: 800px;
   height: 400px;
-  max-height: 400px;
-  margin-bottom: 100px;
   background-color: #282c34;
   color: white;
+`
+
+export const Table = styled.table`
+    border: 1px white solid;
+    min-width: 800px;
+    box-shadow: 0 0 1px white;
+    td, th {
+        border: 1px white solid;
+        padding: 5px;
+        text-align: center;
+    }
 `

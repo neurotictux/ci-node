@@ -14,7 +14,8 @@ export const RunningLogReducer = (state = INITIAL_STATE, action) => {
             if (!lastLog) {
                 lastLog = { log: action.payload.log }
                 newState[action.payload.name] = lastLog
-            }
+            } else
+                lastLog.log = action.payload.log
             lastLog.running = true
             return newState
         case LogActionTypes.APP_END:
