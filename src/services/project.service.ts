@@ -1,9 +1,9 @@
-import { spawn } from 'child_process'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 import { Config } from '../config'
 import { Project } from '../models'
+import { ProcessChildRunner } from '../models'
 import { LogType, onLog } from '../server'
 
 interface ICurrentProcess {
@@ -54,7 +54,7 @@ export class ProjectService {
 
             const projects = this.getAll()
             const proj = projects.find(p => p.name.toLowerCase() === name.toLowerCase())
-            const child = spawn(Config.runnerLoadBranches, [proj.path], { shell: true })
+            const child = ProcessChildRunner.runLoadBranches(proj.path)
             let branches = ''
             child.stdout.on('data', data => {
                 const str = data.toString()
@@ -82,7 +82,7 @@ export class ProjectService {
         const proj = this.getAll().find(p => p.name === name)
         const logFile = join(Config.logsPath, `${name}.log`)
         const publishFolder = join(Config.publishPath, name)
-        const child = spawn(Config.runnerPublish, [proj.path, branch, publishFolder], { shell: true })
+        const child = ProcessChildRunner.runPublish(proj.path, branch, publishFolder)
         onLog(name, LogType.PublishStart)
         proj.logPublish = ''
         child.stdout.on('data', data => {

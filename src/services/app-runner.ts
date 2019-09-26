@@ -1,9 +1,9 @@
-import { spawn } from 'child_process'
 import { join } from 'path'
 import * as TreeKill from 'tree-kill'
 
 import { Config } from '../config'
 import { RunningProcess } from '../models'
+import { ProcessChildRunner } from '../models'
 import { LogType, onLog } from '../server'
 import { ProjectService } from './project.service'
 
@@ -20,10 +20,9 @@ export class AppRunner {
 
     run(name: string): void {
         const proj = this.projectService.get(name)
-        const child = spawn(Config.runnerApp,
-            [join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll')],
-            { shell: true })
+        const child = ProcessChildRunner.runApp(join(Config.publishPath, name), proj.fileName.replace('csproj', 'dll'))
         onLog(name, LogType.AppStart)
+
         child.stdout.on('data', data => onLog(name, LogType.AppData, data.toString()))
         child.stdout.on('close', () => {
             AppRunner.runningProcesses = AppRunner.runningProcesses.filter(p => p.name !== name)

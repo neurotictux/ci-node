@@ -1,2 +1,6 @@
 export { RunningProcess } from './running-process'
 export { Project } from './project'
+export * from './interfaces'
+export { WindowsChildFactory } from './windows-child-factory'
+export { LinuxChildFactory } from './linux-child-factory'
+export { ProcessChildRunner } from './process-child'
