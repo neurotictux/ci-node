@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import axios from 'axios'
-import 'bootstrap/dist/css/bootstrap.min.css'
 
 import './Home.css'
-import { Container, Table } from './styles'
+import { Container, Table, ActionsButton } from './styles'
 import { StatusApp, StatusComponent } from '../StatusApp'
 import { PublishedApps } from '../PublishedApps'
 import { setRunning, setPublishCurrentLog, setPublishes } from '../../store/actions'
@@ -119,19 +118,19 @@ export function Home() {
 
   return (
     <Container>
-      <h4>Publicados</h4>
+      <h4>Deployed</h4>
       <div style={{ marginBottom: '40px' }}>
         <PublishedApps projects={projects.filter(p => p.published)} />
       </div>
-      <h3>Projetos</h3>
+      <h3>Projects</h3>
       <Table hidden={!projects.length}>
         <thead>
           <tr>
             <th>Name</th>
             <th>Path</th>
             <th>Branches</th>
-            <th>Ações</th>
             <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -144,28 +143,29 @@ export function Home() {
                   {p.branches.map(x => <option key={x}>{x}</option>)}
                 </select>
               </td>
+              <td><StatusComponent status={getStatus(p)} project={p} /></td>
               <td>
-                <button className="btn btn-success btn-sm" onClick={() => updateBranches(p.name)}>Atualizar Branches</button>
-                <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Remover</button>
+                <ActionsButton>actions</ActionsButton>
+                {/* <button className="btn btn-success btn-sm" onClick={() => updateBranches(p.name)}>Update Branches</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remove(p.name)}>Remove</button>
                 <br />
                 <button className="btn btn-light btn-sm" hidden={!p.published} onClick={() => showLog(p.name)}>Log</button>
-                <button className="btn btn-light btn-sm" onClick={() => publish(p.name)}>Publicar</button>
+                <button className="btn btn-light btn-sm" onClick={() => publish(p.name)}>Deploy</button> */}
               </td>
-              <td><StatusComponent status={getStatus(p)} project={p} /></td>
             </tr>
           ))}
         </tbody>
       </Table>
-      <button className="btn-add-projeto btn btn-light btn-sm" onClick={() => setEdition(true)}>Adicionar Projeto</button>
+      <button className="btn-add-projeto btn btn-light btn-sm" onClick={() => setEdition(true)}>Add Project</button>
       <div className="divForm" hidden={!edition}>
         <div className="form-group">
-          <span className="label-form">Nome:</span>
+          <span className="label-form">Name:</span>
           <input value={projectName} onChange={val => setProjectName(val.target.value)} />
         </div>
         <div className="form-group">
-          <span className="label-form">Arquivo .csproj:</span>
+          <span className="label-form">File .csproj:</span>
           <input value={projectPath} onChange={val => setProjectPath(val.target.value)} />
-          <small id="emailHelp" className="form-text text-muted">Caminho do arquivo .csproj do projeto.</small>
+          <small id="emailHelp" className="form-text text-muted">Full path .csproj file.</small>
         </div>
         <button className="btn btn-light" onClick={() => clearForm()}>Cancel</button>
         <button className="btn btn-success" onClick={() => save()}>Save</button>

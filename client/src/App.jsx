@@ -1,6 +1,5 @@
 import React from 'react'
 import { Provider } from 'react-redux'
-import 'bootstrap/dist/css/bootstrap.min.css'
 
 import { Home } from './components/Home/Home'
 import { Toolbar } from './components/Toolbar/Index'

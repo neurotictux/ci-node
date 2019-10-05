@@ -9,9 +9,7 @@
         "start": "nodemon --watch src --exec ts-node src/server.ts",
         "build": "npm run lint && tsc",
         "lint": "tslint --project tsconfig.json --fix",
-        "lint2": "tslint ./src/**/*.ts --fix",
-        "precommit": "npm test",
-        "prepush": "npm test"
+        "precommit": "npm run build"
     },
     "dependencies": {
         "body-parser": "^1.19.0",

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import axios from 'axios'
 
 import { StatusApp, StatusComponent } from './StatusApp'
-import { LogArea, Table } from './styles'
+import { LogArea, Table, ActionsButton, StatusRunning } from './styles'
 
 export function PublishedApps({ projects }) {
 
@@ -31,14 +31,14 @@ export function PublishedApps({ projects }) {
     }
 
     return (
-        <div>
-            <Table hidden={!projects.length} className="projects-table">
+        <>
+            <Table hidden={!projects.length}>
                 <thead>
                     <tr>
-                        <th>Nome</th>
+                        <th>Name</th>
                         <th>Branches</th>
-                        <th>Ações</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,15 +47,28 @@ export function PublishedApps({ projects }) {
                             <td>{p.name}</td>
                             <td>{p.selectedBranch}</td>
                             <td>
-                                <button className="btn btn-light btn-sm" onClick={() => showLog(p.name)}>Log</button>
-                                <button className="btn btn-light btn-sm" onClick={() => run(p.name)}>{(runningLog[p.name] || {}).running ? 'Stop' : 'Run'}</button>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <div style={{
+                                        width: '100px',
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        backgroundColor: '#32533a',
+                                    }}>
+                                        <StatusRunning />
+                                    </div>
+                                </div>
+                                {/* <StatusComponent status={(runningLog[p.name] || {}).running ? StatusApp.OK : StatusApp.ERROR} project={p} /> */}
                             </td>
-                            <td><StatusComponent status={(runningLog[p.name] || {}).running ? StatusApp.OK : StatusApp.ERROR} project={p} /></td>
+                            <td>
+                                {/* <button className="btn btn-light btn-sm" onClick={() => showLog(p.name)}>Log</button>
+                                <button className="btn btn-light btn-sm" onClick={() => run(p.name)}>{(runningLog[p.name] || {}).running ? 'Stop' : 'Run'}</button> */}
+                                <ActionsButton>actions</ActionsButton>
+                            </td>
                         </tr>
                     ))}
                 </tbody>
             </Table>
             <LogArea hidden={!(runningLog[currentLogName] || {}).log} value={(runningLog[currentLogName] || {}).log} id="text-log-running" disabled={true} />
-        </div>
+        </>
     )
 }

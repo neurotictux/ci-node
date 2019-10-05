@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-export { Table } from '../styles'
+export { Table, ActionsButton } from '../styles'
 
 export const Container = styled.div`
     min-height: 100vh;
@@ -10,8 +10,4 @@ export const Container = styled.div`
     color: white;
     padding-top: 30px;
     padding-bottom: 30px;
-`
-
-export const Button = styled.button`
-
 `

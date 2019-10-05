@@ -4,7 +4,8 @@ import { StatusContainer, StatusError, StatusOk, StatusProcessing } from './styl
 export const StatusApp = {
     ERROR: 1,
     PROCESSING: 2,
-    OK: 3
+    OK: 3,
+    RUNNING: 4
 }
 
 export const StatusComponent = ({ status }) => {
